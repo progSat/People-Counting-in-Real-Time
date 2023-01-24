@@ -40,7 +40,10 @@ def run():
 		"sofa", "train", "tvmonitor"]
   '''
 	# load our serialized model from disk
-	net = cv2.dnn.readNetFromONNX(args["model"])
+  import onnx
+  onnx_model = onnx.load('runs/train/exp/weights/best.onnx')
+  onnx.checker.check_model(onnx_model)
+	#net = cv2.dnn.readNetFromONNX(args["model"])
 
 	# if a video path was not supplied, grab a reference to the ip camera
 	if not args.get("input", False):
