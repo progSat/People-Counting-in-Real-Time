@@ -16,10 +16,10 @@ def run():
 
 	# construct the argument parse and parse the arguments
 	ap = argparse.ArgumentParser()
-	ap.add_argument("-p", "--prototxt", required=False,
-		help="path to Caffe 'deploy' prototxt file")
+	#ap.add_argument("-p", "--prototxt", required=False,
+		#help="path to Caffe 'deploy' prototxt file")
 	ap.add_argument("-m", "--model", required=True,
-		help="path to Caffe pre-trained model")
+		help="path to ONNX pre-trained model")
 	ap.add_argument("-i", "--input", type=str,
 		help="path to optional input video file")
 	ap.add_argument("-o", "--output", type=str,
@@ -33,13 +33,14 @@ def run():
 
 	# initialize the list of class labels MobileNet SSD was trained to
 	# detect
-	CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
+	'''
+  CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
 		"bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
 		"dog", "horse", "motorbike", "person", "pottedplant", "sheep",
 		"sofa", "train", "tvmonitor"]
-
+  '''
 	# load our serialized model from disk
-	net = cv2.dnn.readNetFromONNX( args["model"])
+	net = cv2.dnn.readNetFromONNX(args["model"])
 
 	# if a video path was not supplied, grab a reference to the ip camera
 	if not args.get("input", False):
