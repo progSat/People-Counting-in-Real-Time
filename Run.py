@@ -4,7 +4,7 @@ from imutils.video import VideoStream
 from imutils.video import FPS
 from mylib.mailer import Mailer
 from mylib import config, thread
-import time, schedule, csv
+import time, schedule, csv, torch
 import numpy as np
 import argparse, imutils
 import time, dlib, cv2, datetime
@@ -40,10 +40,7 @@ def run():
 		"sofa", "train", "tvmonitor"]
   '''
 	# load our serialized model from disk
-  import onnx
-  onnx_model = onnx.load('runs/train/exp/weights/best.onnx')
-  onnx.checker.check_model(onnx_model)
-	#net = cv2.dnn.readNetFromONNX(args["model"])
+	model = torch.hub.load("WongKinYiu/yolov7","custom", path_or_model= args["model"], trust_repo=True)
 
 	# if a video path was not supplied, grab a reference to the ip camera
 	if not args.get("input", False):
@@ -130,22 +127,21 @@ def run():
 
 			# convert the frame to a blob and pass the blob through the
 			# network and obtain the detections
-			blob = cv2.dnn.blobFromImage(frame, 0.007843, (W, H), 127.5)
-			net.setInput(blob)
-			detections = net.forward()
+			detections = model(frame)
+			detections = detections.pandas().xyxy[0]
 
 			# loop over the detections
-			for i in np.arange(0, detections.shape[2]):
+			for i in np.arange(0, detections.shape[1]-1):
 				# extract the confidence (i.e., probability) associated
 				# with the prediction
-				confidence = detections[0, 0, i, 2]
+				#confidence = detections[0, 0, i, 2]
 
 				# filter out weak detections by requiring a minimum
 				# confidence
-				if confidence > args["confidence"]:
+				#if confidence > args["confidence"]:
 					# extract the index of the class label from the
 					# detections list
-					idx = int(detections[0, 0, i, 1])
+					#idx = int(detections[0, 0, i, 1])
 
 					# if the class label is not a person, ignore it
 					#if CLASSES[idx] != "person":
@@ -153,20 +149,20 @@ def run():
 
 					# compute the (x, y)-coordinates of the bounding box
 					# for the object
-					box = detections[0, 0, i, 3:7] * np.array([W, H, W, H])
-					(startX, startY, endX, endY) = box.astype("int")
+					#box = detections[0, 0, i, 3:7] * np.array([W, H, W, H])
+				(startX, startY, endX, endY) = detections.xmin[i], detections.ymin[i], detections.xmax[i], detections.ymax[i] 
 
 
 					# construct a dlib rectangle object from the bounding
 					# box coordinates and then start the dlib correlation
 					# tracker
-					tracker = dlib.correlation_tracker()
-					rect = dlib.rectangle(startX, startY, endX, endY)
-					tracker.start_track(rgb, rect)
+				tracker = dlib.correlation_tracker()
+				rect = dlib.rectangle(int(startX), int(startY), int(endX), int(endY))
+				tracker.start_track(rgb, rect)
 
 					# add the tracker to our list of trackers so we can
 					# utilize it during skip frames
-					trackers.append(tracker)
+				trackers.append(tracker)
 
 		# otherwise, we should utilize our object *trackers* rather than
 		# object *detectors* to obtain a higher frame processing throughput
@@ -182,10 +178,10 @@ def run():
 				pos = tracker.get_position()
 
 				# unpack the position object
-				startX = int(pos.left())
-				startY = int(pos.top())
-				endX = int(pos.right())
-				endY = int(pos.bottom())
+				startX = int(startX)
+				startY = int(startY)
+				endX = int(endX)
+				endY = int(endY)
 
 				# add the bounding box coordinates to the rectangles list
 				rects.append((startX, startY, endX, endY))
@@ -302,12 +298,12 @@ def run():
 			writer.write(frame)
 
 		# show the output frame
-		cv2.imshow("Real-Time Monitoring/Analysis Window", frame)
-		key = cv2.waitKey(1) & 0xFF
+		#cv2.imshow("Real-Time Monitoring/Analysis Window", frame)
+		#key = cv2.waitKey(1) & 0xFF
 
 		# if the `q` key was pressed, break from the loop
-		if key == ord("q"):
-			break
+		#if key == ord("q"):
+			#break
 
 		# increment the total number of frames processed thus far and
 		# then update the FPS counter
