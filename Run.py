@@ -9,6 +9,7 @@ import numpy as np
 import argparse, imutils
 import time, dlib, cv2, datetime
 from itertools import zip_longest
+from plots import plot_one_box
 
 t0 = time.time()
 
@@ -151,8 +152,7 @@ def run():
 					# for the object
 					#box = detections[0, 0, i, 3:7] * np.array([W, H, W, H])
 				(startX, startY, endX, endY) = (int(detections.iloc[i].xmin), int(detections.iloc[i].ymin), int(detections.iloc[i].xmax), int(detections.iloc[i].ymax))
-
-
+				class_id, class_name = int(detections.iloc[i]['class']), detections.iloc[i]['name']
 					# construct a dlib rectangle object from the bounding
 					# box coordinates and then start the dlib correlation
 					# tracker
@@ -199,6 +199,7 @@ def run():
 
 		# loop over the tracked objects
 		for (objectID, centroid) in objects.items():
+
 			# check to see if a trackable object exists for the current
 			# object ID
 			to = trackableObjects.get(objectID, None)
@@ -261,6 +262,7 @@ def run():
 			cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 			cv2.circle(frame, (centroid[0], centroid[1]), 4, (255, 255, 255), -1)
+			plot_one_box([startX,startY,endX,endY], frame, color = int(class_id), label = class_name)
 
 		# construct a tuple of information we will be displaying on the
 		info = [
