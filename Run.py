@@ -98,7 +98,7 @@ def run():
 		# resize the frame to have a maximum width of 500 pixels (the
 		# less data we have, the faster we can process it), then convert
 		# the frame from BGR to RGB for dlib
-		frame = imutils.resize(frame, width = 500)
+		frame = imutils.resize(frame, width = 650)
 		rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
 		# if the frame dimensions are empty, set them
@@ -131,7 +131,7 @@ def run():
 			detections = detections.pandas().xyxy[0]
 
 			# loop over the detections
-			for i in np.arange(0, detections.shape[1]-1):
+			for i in np.arange(0, detections.shape[0]-1):
 				# extract the confidence (i.e., probability) associated
 				# with the prediction
 				#confidence = detections[0, 0, i, 2]
@@ -150,14 +150,14 @@ def run():
 					# compute the (x, y)-coordinates of the bounding box
 					# for the object
 					#box = detections[0, 0, i, 3:7] * np.array([W, H, W, H])
-				(startX, startY, endX, endY) = detections.xmin[i], detections.ymin[i], detections.xmax[i], detections.ymax[i] 
+				(startX, startY, endX, endY) = (int(detections.iloc[i].xmin), int(detections.iloc[i].ymin), int(detections.iloc[i].xmax), int(detections.iloc[i].ymax))
 
 
 					# construct a dlib rectangle object from the bounding
 					# box coordinates and then start the dlib correlation
 					# tracker
 				tracker = dlib.correlation_tracker()
-				rect = dlib.rectangle(int(startX), int(startY), int(endX), int(endY))
+				rect = dlib.rectangle(startX, startY, endX, endY)
 				tracker.start_track(rgb, rect)
 
 					# add the tracker to our list of trackers so we can
@@ -178,10 +178,10 @@ def run():
 				pos = tracker.get_position()
 
 				# unpack the position object
-				startX = int(startX)
-				startY = int(startY)
-				endX = int(endX)
-				endY = int(endY)
+				startX = int(pos.left())
+				startY = int(pos.top())
+				endX = int(pos.right())
+				endY = int(pos.bottom())
 
 				# add the bounding box coordinates to the rectangles list
 				rects.append((startX, startY, endX, endY))
