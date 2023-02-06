@@ -28,7 +28,7 @@ def run():
 	# confidence default 0.4
 	ap.add_argument("-c", "--confidence", type=float, default=0.4,
 		help="minimum probability to filter weak detections")
-	ap.add_argument("-s", "--skip-frames", type=int, default=30,
+	ap.add_argument("-s", "--skip-frames", type=int, default=60,
 		help="# of skip frames between detections")
 	args = vars(ap.parse_args())
 
@@ -189,10 +189,15 @@ def run():
 		# draw a horizontal line in the center of the frame -- once an
 		# object crosses this line we will determine whether they were
 		# moving 'up' or 'down'
-		cv2.line(frame, (0, H // 2), (W, H // 2), (0, 0, 0), 3)
+		#modifying to the line to be drawn in vertical direction
+		line_X1, line_Y1 = int(W * 0.30), 0
+		line_X2, line_Y2 = int(W * 0.30), H
+		cv2.line(frame, (line_X1 , line_Y1), (line_X2, line_Y2), (0, 0, 0), 3)
 		cv2.putText(frame, "-Prediction border - Entrance-", (10, H - ((i * 20) + 200)),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
+		# flag to see weher he object has passed the line or not
+		Passed = False   
 		# use the centroid tracker to associate the (1) old object
 		# centroids with (2) the newly computed object centroids
 		objects = ct.update(rects)
@@ -215,8 +220,9 @@ def run():
 				# centroid and the mean of *previous* centroids will tell
 				# us in which direction the object is moving (negative for
 				# 'up' and positive for 'down')
-				y = [c[1] for c in to.centroids]
-				direction = centroid[1] - np.mean(y)
+        #modifying it to x coordinate by replacing index 1 with 0
+				y = [c[0] for c in to.centroids]
+				direction = centroid[0] - np.mean(y)
 				to.centroids.append(centroid)
 
 				# check to see if the object has been counted or not
@@ -224,7 +230,7 @@ def run():
 					# if the direction is negative (indicating the object
 					# is moving up) AND the centroid is above the center
 					# line, count the object
-					if direction < 0 and centroid[1] < H // 2:
+					if direction < 0 and centroid[0] < line_X1:
 						totalUp += 1
 						empty.append(totalUp)
 						to.counted = True
@@ -232,7 +238,7 @@ def run():
 					# if the direction is positive (indicating the object
 					# is moving down) AND the centroid is below the
 					# center line, count the object
-					elif direction > 0 and centroid[1] > H // 2:
+					elif direction > 0 and centroid[0] > line_X1:
 						totalDown += 1
 						empty1.append(totalDown)
 						#print(empty1[-1])
