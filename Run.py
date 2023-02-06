@@ -28,7 +28,7 @@ def run():
 	# confidence default 0.4
 	ap.add_argument("-c", "--confidence", type=float, default=0.4,
 		help="minimum probability to filter weak detections")
-	ap.add_argument("-s", "--skip-frames", type=int, default=60,
+	ap.add_argument("-s", "--skip-frames", type=int, default=30,
 		help="# of skip frames between detections")
 	args = vars(ap.parse_args())
 
@@ -77,6 +77,7 @@ def run():
 	x = []
 	empty=[]
 	empty1=[]
+	passedHist = {}
 
 	#the frames per second throughput estimator
 	fps = FPS().start()
@@ -195,9 +196,7 @@ def run():
 		cv2.line(frame, (line_X1 , line_Y1), (line_X2, line_Y2), (0, 0, 0), 3)
 		cv2.putText(frame, "-Prediction border - Entrance-", (10, H - ((i * 20) + 200)),
 			cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-
-		# flag to see weher he object has passed the line or not
-		Passed = False   
+  
 		# use the centroid tracker to associate the (1) old object
 		# centroids with (2) the newly computed object centroids
 		objects = ct.update(rects)
@@ -205,14 +204,18 @@ def run():
 		# loop over the tracked objects
 		for (objectID, centroid) in objects.items():
 
-			# check to see if a trackable object exists for the current
+			# check to see if a trackable object exists and passed history for the current
 			# object ID
 			to = trackableObjects.get(objectID, None)
-
+			
 			# if there is no existing trackable object, create one
 			if to is None:
 				to = TrackableObject(objectID, centroid)
-
+				if centroid[0] == line_X1:
+					passedHist[objectID] = 1
+				else:
+					passedHist[objectID] = 0
+				
 			# otherwise, there is a trackable object so we can utilize it
 			# to determine direction
 			else:
@@ -223,23 +226,32 @@ def run():
         #modifying it to x coordinate by replacing index 1 with 0
 				y = [c[0] for c in to.centroids]
 				direction = centroid[0] - np.mean(y)
+
+				# check to see if the object has passed through the boundary line and
+        #update the passed varialbe if it does
+
+				if centroid[0] == line_X1:
+					passedHist[objectID] = 1
+
 				to.centroids.append(centroid)
 
 				# check to see if the object has been counted or not
 				if not to.counted:
 					# if the direction is negative (indicating the object
-					# is moving up) AND the centroid is above the center
+					# is moving up (or moving left and exiting, after code changed )) AND the centroid is above the center
 					# line, count the object
-					if direction < 0 and centroid[0] < line_X1:
-						totalUp += 1
+          # changing variable, totalUp to totalDown
+					if direction < 0 and centroid[0] < line_X1 and passedHist[objectID] == 1:
+						totalDown += 1
 						empty.append(totalUp)
 						to.counted = True
 
 					# if the direction is positive (indicating the object
-					# is moving down) AND the centroid is below the
+					# is moving down (or moving right and entering, after code changed )) AND the centroid is below the
 					# center line, count the object
-					elif direction > 0 and centroid[0] > line_X1:
-						totalDown += 1
+          #  changing variable, totalDown to totalUp
+					elif direction > 0 and centroid[0] > line_X1 and passedHist[objectID] == 1:
+						totalUp += 1
 						empty1.append(totalDown)
 						#print(empty1[-1])
 						# if the people limit exceeds over threshold, send an email alert
@@ -252,7 +264,6 @@ def run():
 								print("[INFO] Alert sent")
 
 						to.counted = True
-						
 					x = []
 					# compute the sum of total people inside
 					x.append(len(empty1)-len(empty))
